@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+
+function f_run_instances(){
+  aws ec2 run-instances --image-id ${v_ami_id} --key-name ${v_key_name} --security-groups ${v_security_group} --instance-type ${v_instance_type} --count 1 >> ${v_params}
+}
+
+function f_get_instance_id(){
+  grep -i instanceid ${v_params} | awk -F"\"" '{print $4}'
+}
+
+function f_create_image(){
+  aws ec2 create-image --instance-id $(f_get_instance_id) --name "${v_ami_name}" >> ${v_params}
+}
+
+function f_deregister_image(){
+  aws ec2 deregister-image --image-id $(f_get_ami_id)
+}
+
+function f_get_image_id(){
+  grep -ie imageid ${v_params} | grep -v , | awk '{print $2}' | sed "s|\"||g"
+}
+
+function f_get_image_state(){
+  aws ec2 describe-images --image-ids $(f_get_image_id) --query "Images[].[State]" --output text
+}
+
+function f_wait_for_image(){
+  while true; do
+    until [ "$(f_get_image_state)" == 'available' ]; do
+      sleep 3
+      echo -e "\t\t\t\t$(f_get_image_state)"
+    done
+    break
+  done
+}
+
+function f_get_ami_id(){
+  aws ec2 describe-images --owners self --query "Images[?Name=='${v_ami_name}'].[ImageId]" --output text
+}
+
+function f_get_vpc_id(){
+  aws ec2 describe-instances --instance-ids $(f_get_instance_id) --query "Reservations[].Instances[].VpcId[]" --output text
+}
+
+function f_get_instance_subnet_id(){
+  aws ec2 describe-instances --instance-ids $(f_get_instance_id) --query "Reservations[].Instances[].[SubnetId]" --output text
+}
+
+function f_get_instance_group_id(){
+  aws ec2 describe-instances --instance-ids $(f_get_instance_id) --query "Reservations[].Instances[].SecurityGroups[].[GroupId]" --output text
+}
+
+function f_terminate_instances(){
+  aws ec2 terminate-instances --instance-ids $(f_get_instance_id) >> /dev/null
+}
+
+function f_get_instance_public_dns(){
+  aws ec2 describe-instances --instance-ids $(f_get_instance_id) --query 'Reservations[].Instances[].[PublicDnsName]' --output text
+}
+
+function f_verify_instance_terminated(){
+  while true; do
+    until [ "$(f_get_instance_state)" == 'terminated' ]; do
+      sleep 1
+      echo -e "\t\t\t\t$(f_get_instance_state)"
+    done
+    break
+  done
+}
+
+function f_get_instance_state(){
+  aws ec2 describe-instances --instance-ids $(f_get_instance_id) --query 'Reservations[].Instances[].State[].[Name]' --output text
+}
+
+function f_wait_for_instance_state(){
+  local _state=$1
+  while true; do
+    until [ "${v_instance_state}" == "${1}" ]; do
+      sleep 3
+      local v_instance_state=$(f_get_instance_state)
+    done
+    break
+  done
+}
+
+function f_get_ami_region(){
+  aws ec2 describe-images --image-ids $(f_get_ami_id)
+}
+
+function f_test_ssh(){
+  exec 3>&2
+  exec 2> /dev/null
+  ssh -i ~/.ssh/${v_key_name}.pem -o "StrictHostKeyChecking no" ec2-user@`f_get_instance_public_dns` echo ""
+  if [ $? -eq 0 ]; then
+    _ssh_availability=1
+    echo -e "\t\t\t\tSSH Available"
+  else
+    _ssh_availability=0
+    echo -e "\t\t\t\tSSH Unavailable"
+  fi
+  exec 2>&3
+}
+
+function f_wait_for_ssh(){
+  while true; do
+    until [[ $_ssh_availability -eq 1 ]]; do
+      sleep 3
+      f_test_ssh
+    done
+    break
+  done
+}

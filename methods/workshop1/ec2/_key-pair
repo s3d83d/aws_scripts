@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+function f_create_key_pair(){
+  aws ec2 create-key-pair --key-name ${v_key_name} >> ${v_params}
+  grep KeyMaterial ${v_params} | awk -F"\"" '{print $4}' | awk '{gsub(/\\n/,"\n")}1' > ~/.ssh/${v_key_name}.pem
+  chmod 400 ~/.ssh/${v_key_name}.pem
+}
+
+function f_delete_key_pair(){
+  aws ec2 delete-key-pair --key-name ${v_key_name}
+  rm -f ~/.ssh/${v_key_name}.pem
+}
+
+function f_test_key_pair(){
+  if [ ! -f ~/.ssh/${v_key_name}.pem ]
+  then
+    f_create_key_pair
+  else
+    while true; do
+      echo -e "Do you want to create a new key pair?\nWARNING: Previous ${USER}-aws-keypair will no longer work if you select y(yes)!!"
+      read -p "Choice (y/n): " yn
+      case $yn in
+        [Yy]* )
+          f_delete_key_pair
+          f_create_key_pair
+          break
+          ;;
+        [Nn]* )
+          break
+          ;;
+        * )
+          echo "Please answer y or n."
+          ;;
+      esac
+    done
+  fi
+}

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+function f_create_elb(){
+  aws elb create-load-balancer --load-balancer-name ${v_elb_name} --security-groups $(f_get_instance_group_id) --listeners "Protocol=HTTP,LoadBalancerPort=80,InstanceProtocol=HTTP,InstancePort=80" --subnets $(f_get_instance_subnet_id) >> /dev/null
+}
+
+function f_get_elb_canonical(){
+  aws elb describe-load-balancers --load-balancer-names ${v_elb_name} --query "LoadBalancerDescriptions[].[CanonicalHostedZoneName]" --output text
+}
+
+function f_delete_elb(){
+  aws elb delete-load-balancer --load-balancer-name ${v_elb_name}
+}

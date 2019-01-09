@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+function f_create_autoscaler_config(){
+  aws autoscaling create-launch-configuration --launch-configuration-name ${v_autoscaler_config} --image-id $(f_get_ami_id) --instance-type ${v_instance_type} --key ${v_key_name} --security-groups $(f_get_instance_group_id)
+}
+
+function f_create_autoscaler_group(){
+  aws autoscaling create-auto-scaling-group --auto-scaling-group-name ${v_autoscaler_group} --launch-configuration-name ${v_autoscaler_config} --vpc-zone-identifier $(f_get_instance_subnet_id) --min-size 1 --max-size 3 --desired-capacity 2 --load-balancer-names ${v_elb_name}
+}
+
+function f_delete_autoscaler(){
+  aws autoscaling update-auto-scaling-group --auto-scaling-group-name ${v_autoscaler_group} --max-size 0 --min-size 0
+  #aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names ${v_autoscaler_group}
+  # Need a way to detect instance terminations
+  sleep 20
+  aws autoscaling delete-auto-scaling-group --auto-scaling-group-name ${v_autoscaler_group}
+  aws autoscaling delete-launch-configuration --launch-configuration-name ${v_autoscaler_config}
+}

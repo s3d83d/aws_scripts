@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+## Global
+v_params=`pwd`/cache/ws1_params.json
+v_instance=`pwd`/cache/ws1_instance
+
+## EC2 Variables
+v_region="Oregon"
+v_key_name="${USER}-aws-ws1-keypair"
+v_security_group="${USER}-ws1-security-group"
+v_security_group_desc="My WS1 Security Group"
+v_instance_name="${USER}-ws1-instance"
+v_instance_type="t2.micro"
+v_ami_id="ami-7172b611"
+v_allowed_ports="22 80"
+v_allowed_nets="0.0.0.0/0"
+v_ip_proto="tcp"
+v_ami_name="ws1-ami"
+v_elb_name="ws1-elb"
+v_autoscaler_config="ws1-autoscaler_launch_config"
+v_autoscaler_group="ws1-autoscaler-group"

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+function f_create_security_group(){
+  aws ec2 create-security-group --group-name ${v_security_group} --description "${v_security_group_desc}" >> ${v_params}
+}
+
+function f_allow_ports(){
+  for i in ${v_allowed_ports}; do
+    aws ec2 authorize-security-group-ingress --group-name ${v_security_group} --to-port ${i} --ip-protocol ${v_ip_proto} --cidr-ip ${v_allowed_nets} --from-port ${i}
+  done
+}
+
+function f_delete_security_group(){
+  aws ec2 delete-security-group --group-name ${v_security_group}
+}

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+function f_yum_install_httpd(){
+  ssh -i ~/.ssh/${v_key_name}.pem -o "StrictHostKeyChecking no" ec2-user@`f_get_instance_public_dns` sudo yum -y install httpd >> /dev/null
+}
+
+function f_create_index_html(){
+  ssh -i ~/.ssh/${v_key_name}.pem -o "StrictHostKeyChecking no" ec2-user@`f_get_instance_public_dns` sudo tee /var/www/html/index.html < `pwd`/files/workshop1/index.html >> /dev/null
+  ssh -i ~/.ssh/${v_key_name}.pem -o "StrictHostKeyChecking no" ec2-user@`f_get_instance_public_dns` sudo chown apache -R /var/www/html >> /dev/null
+}
+
+function f_enable_start_httpd(){
+  ssh -i ~/.ssh/${v_key_name}.pem -o "StrictHostKeyChecking no" ec2-user@`f_get_instance_public_dns` sudo service httpd start >> /dev/null
+  ssh -i ~/.ssh/${v_key_name}.pem -o "StrictHostKeyChecking no" ec2-user@`f_get_instance_public_dns` sudo chkconfig httpd on >> /dev/null
+}
